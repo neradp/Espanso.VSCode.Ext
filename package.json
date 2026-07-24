@@ -1,0 +1,145 @@
+{
+  "name": "espanso-vscode-ext",
+  "displayName": "Espanso",
+  "description": "Editing support for espanso configuration and match files: validation, autocompletion, a matches tree view, commands and snippets.",
+  "version": "0.0.1",
+  "publisher": "neradp",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neradp/Espanso.VSCode.Ext"
+  },
+  "engines": {
+    "vscode": "^1.125.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Other"
+  ],
+  "keywords": [
+    "espanso",
+    "text expander",
+    "yaml",
+    "snippets"
+  ],
+  "main": "./dist/extension.js",
+  "extensionDependencies": [
+    "redhat.vscode-yaml"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "espanso.openMatchFolder",
+        "title": "Open Match Folder",
+        "category": "Espanso"
+      },
+      {
+        "command": "espanso.openConfigFolder",
+        "title": "Open Config Folder",
+        "category": "Espanso"
+      },
+      {
+        "command": "espanso.openPackagesFolder",
+        "title": "Open Packages Folder",
+        "category": "Espanso"
+      },
+      {
+        "command": "espanso.restart",
+        "title": "Restart Espanso",
+        "category": "Espanso"
+      },
+      {
+        "command": "espanso.refreshMatches",
+        "title": "Refresh Matches",
+        "category": "Espanso",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "espanso.newMatchFile",
+        "title": "New Match File",
+        "category": "Espanso"
+      },
+      {
+        "command": "espanso.showMenu",
+        "title": "Show Menu",
+        "category": "Espanso"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "espansoMatches",
+          "name": "Espanso Matches",
+          "icon": "$(symbol-snippet)"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "espanso.refreshMatches",
+          "when": "view == espansoMatches",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Espanso",
+      "properties": {
+        "espanso.executablePath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the espanso executable (file or folder). Leave empty for automatic discovery (PATH, user PATH in the registry, default install folders)."
+        }
+      }
+    },
+    "snippets": [
+      {
+        "language": "yaml",
+        "path": "./snippets/espanso.code-snippets"
+      }
+    ],
+    "yamlValidation": [
+      {
+        "fileMatch": [
+          "**/espanso/match/**/*.yml",
+          "**/espanso/match/**/*.yaml"
+        ],
+        "url": "https://raw.githubusercontent.com/espanso/espanso/dev/schemas/match.schema.json"
+      },
+      {
+        "fileMatch": [
+          "**/espanso/config/*.yml",
+          "**/espanso/config/*.yaml"
+        ],
+        "url": "https://raw.githubusercontent.com/espanso/espanso/dev/schemas/config.schema.json"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "node esbuild.mjs --tests && node --test \"dist-test/**/*.test.js\"",
+    "vscode:prepublish": "npm run compile -- --production",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/vscode": "^1.125.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.7.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.65.0"
+  }
+}

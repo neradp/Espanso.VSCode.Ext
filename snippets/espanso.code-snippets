@@ -1,0 +1,372 @@
+{
+  "espanso: basic match": {
+    "prefix": "esp-match",
+    "description": "Basic espanso match (trigger + replace)",
+    "body": [
+      "- trigger: \":${1:name}\"",
+      "  replace: \"${2:replacement}\""
+    ]
+  },
+  "espanso: match with label": {
+    "prefix": "esp-label",
+    "description": "Match with label and search terms (easier to find in the search bar)",
+    "body": [
+      "- trigger: \":${1:name}\"",
+      "  label: \"${2:Human-readable description}\"",
+      "  search_terms: [\"${3:keyword}\"]",
+      "  replace: \"${4:replacement}\""
+    ]
+  },
+  "espanso: multi-trigger match": {
+    "prefix": "esp-triggers",
+    "description": "Match with multiple triggers",
+    "body": [
+      "- triggers: [\":${1:one}\", \":${2:two}\"]",
+      "  replace: \"${3:replacement}\""
+    ]
+  },
+  "espanso: word match": {
+    "prefix": "esp-word",
+    "description": "Match that only expands as a whole word (typo correction)",
+    "body": [
+      "- trigger: \"${1:teh}\"",
+      "  replace: \"${2:the}\"",
+      "  word: true"
+    ]
+  },
+  "espanso: case propagation": {
+    "prefix": "esp-case",
+    "description": "Word match that adapts its casing to the typed trigger",
+    "body": [
+      "- trigger: \"${1:btw}\"",
+      "  replace: \"${2:by the way}\"",
+      "  word: true",
+      "  propagate_case: true",
+      "  uppercase_style: \"${3|uppercase,capitalize,capitalize_words|}\""
+    ]
+  },
+  "espanso: regex match": {
+    "prefix": "esp-regex",
+    "description": "Regex match with a named capture group",
+    "body": [
+      "- regex: \"${1:greet}\\\\((?P<${2:name}>.*)\\\\)\"",
+      "  replace: \"${3:Hi {{${2:name}}}!}\""
+    ]
+  },
+  "espanso: cursor position": {
+    "prefix": "esp-cursor",
+    "description": "Match placing the cursor with $|$",
+    "body": [
+      "- trigger: \":${1:div}\"",
+      "  replace: \"${2:<div>}\\$|\\$${3:</div>}\""
+    ]
+  },
+  "espanso: multiline replace": {
+    "prefix": "esp-multiline",
+    "description": "Match with a multiline replacement (YAML block scalar)",
+    "body": [
+      "- trigger: \":${1:sig}\"",
+      "  replace: |",
+      "    ${2:Best regards,}",
+      "    ${3:Your Name}"
+    ]
+  },
+  "espanso: markdown match": {
+    "prefix": "esp-markdown",
+    "description": "Match injecting rich text rendered from Markdown",
+    "body": [
+      "- trigger: \":${1:md}\"",
+      "  markdown: \"${2:This *is* a **markdown** snippet}\""
+    ]
+  },
+  "espanso: HTML match": {
+    "prefix": "esp-html",
+    "description": "Match injecting rich text rendered from HTML",
+    "body": [
+      "- trigger: \":${1:html}\"",
+      "  html: \"${2:<b>Bold</b> and <i>italic</i>}\""
+    ]
+  },
+  "espanso: image match": {
+    "prefix": "esp-image",
+    "description": "Match inserting an image ($CONFIG expands to the config folder)",
+    "body": [
+      "- trigger: \":${1:img}\"",
+      "  image_path: \"${2:\\$CONFIG/images/image.png}\""
+    ]
+  },
+  "espanso: clipboard injection mode": {
+    "prefix": "esp-forcemode",
+    "description": "Match forcing a specific injection mechanism",
+    "body": [
+      "- trigger: \":${1:name}\"",
+      "  replace: \"${2:replacement}\"",
+      "  force_mode: ${3|clipboard,keys|}"
+    ]
+  },
+  "espanso: date variable": {
+    "prefix": "esp-date",
+    "description": "Match inserting the current date",
+    "body": [
+      "- trigger: \":${1:date}\"",
+      "  replace: \"{{date}}\"",
+      "  vars:",
+      "    - name: date",
+      "      type: date",
+      "      params:",
+      "        format: \"${2:%Y-%m-%d}\""
+    ]
+  },
+  "espanso: date with offset": {
+    "prefix": "esp-date-offset",
+    "description": "Date shifted by an offset in seconds (e.g. tomorrow = 86400)",
+    "body": [
+      "- trigger: \":${1:tomorrow}\"",
+      "  replace: \"{{date}}\"",
+      "  vars:",
+      "    - name: date",
+      "      type: date",
+      "      params:",
+      "        format: \"${2:%Y-%m-%d}\"",
+      "        offset: ${3:86400}"
+    ]
+  },
+  "espanso: time variable": {
+    "prefix": "esp-time",
+    "description": "Match inserting the current time",
+    "body": [
+      "- trigger: \":${1:time}\"",
+      "  replace: \"{{time}}\"",
+      "  vars:",
+      "    - name: time",
+      "      type: date",
+      "      params:",
+      "        format: \"${2:%H:%M}\""
+    ]
+  },
+  "espanso: shell variable": {
+    "prefix": "esp-shell",
+    "description": "Match running a shell command",
+    "body": [
+      "- trigger: \":${1:shell}\"",
+      "  replace: \"{{output}}\"",
+      "  vars:",
+      "    - name: output",
+      "      type: shell",
+      "      params:",
+      "        cmd: \"${2:echo hello}\""
+    ]
+  },
+  "espanso: PowerShell variable": {
+    "prefix": "esp-pwsh",
+    "description": "Match running a PowerShell command (Windows)",
+    "body": [
+      "- trigger: \":${1:ps}\"",
+      "  replace: \"{{output}}\"",
+      "  vars:",
+      "    - name: output",
+      "      type: shell",
+      "      params:",
+      "        shell: powershell",
+      "        cmd: \"${2:Get-Date -Format yyyy-MM-dd}\""
+    ]
+  },
+  "espanso: clipboard transform (shell)": {
+    "prefix": "esp-clip-transform",
+    "description": "Transform clipboard content with a shell command",
+    "body": [
+      "- trigger: \":${1:upper}\"",
+      "  replace: \"{{output}}\"",
+      "  vars:",
+      "    - name: clipboard",
+      "      type: clipboard",
+      "    - name: output",
+      "      type: shell",
+      "      params:",
+      "        shell: powershell",
+      "        cmd: \"${2:'{{clipboard}}'.ToUpper()}\""
+    ]
+  },
+  "espanso: script variable": {
+    "prefix": "esp-script",
+    "description": "Match running an external script",
+    "body": [
+      "- trigger: \":${1:script}\"",
+      "  replace: \"{{output}}\"",
+      "  vars:",
+      "    - name: output",
+      "      type: script",
+      "      params:",
+      "        args:",
+      "          - ${2:python}",
+      "          - \"${3:%CONFIG%/scripts/script.py}\""
+    ]
+  },
+  "espanso: clipboard variable": {
+    "prefix": "esp-clipboard",
+    "description": "Match wrapping the clipboard content",
+    "body": [
+      "- trigger: \":${1:quote}\"",
+      "  replace: \"${2:> }{{clipboard}}\"",
+      "  vars:",
+      "    - name: clipboard",
+      "      type: clipboard"
+    ]
+  },
+  "espanso: choice variable": {
+    "prefix": "esp-choice",
+    "description": "Match showing a choice selection",
+    "body": [
+      "- trigger: \":${1:choose}\"",
+      "  replace: \"{{selection}}\"",
+      "  vars:",
+      "    - name: selection",
+      "      type: choice",
+      "      params:",
+      "        values:",
+      "          - \"${2:First}\"",
+      "          - \"${3:Second}\""
+    ]
+  },
+  "espanso: choice with labels": {
+    "prefix": "esp-choice-labels",
+    "description": "Choice selection where the shown label differs from the inserted id",
+    "body": [
+      "- trigger: \":${1:choose}\"",
+      "  replace: \"{{selection}}\"",
+      "  vars:",
+      "    - name: selection",
+      "      type: choice",
+      "      params:",
+      "        values:",
+      "          - label: \"${2:Shown in the list}\"",
+      "            id: \"${3:inserted-value}\"",
+      "          - label: \"${4:Another option}\"",
+      "            id: \"${5:another-value}\""
+    ]
+  },
+  "espanso: random variable": {
+    "prefix": "esp-random",
+    "description": "Match inserting a random choice",
+    "body": [
+      "- trigger: \":${1:rand}\"",
+      "  replace: \"{{value}}\"",
+      "  vars:",
+      "    - name: value",
+      "      type: random",
+      "      params:",
+      "        choices:",
+      "          - \"${2:One}\"",
+      "          - \"${3:Two}\""
+    ]
+  },
+  "espanso: echo variable": {
+    "prefix": "esp-echo",
+    "description": "Match with a fixed echo variable",
+    "body": [
+      "- trigger: \":${1:name}\"",
+      "  replace: \"{{myvar}}\"",
+      "  vars:",
+      "    - name: myvar",
+      "      type: echo",
+      "      params:",
+      "        echo: \"${2:value}\""
+    ]
+  },
+  "espanso: form match": {
+    "prefix": "esp-form",
+    "description": "Match opening a simple form with [[field]] placeholders",
+    "body": [
+      "- trigger: \":${1:form}\"",
+      "  form: |",
+      "    ${2:Hey [[name]],}",
+      "    ${3:nice to meet you!}"
+    ]
+  },
+  "espanso: form with field types": {
+    "prefix": "esp-form-fields",
+    "description": "Form with multiline, choice and list field configuration",
+    "body": [
+      "- trigger: \":${1:form}\"",
+      "  form: |",
+      "    ${2:Dear [[name]],}",
+      "    ${3:[[body]]}",
+      "    ${4:Priority: [[priority]]}",
+      "  form_fields:",
+      "    body:",
+      "      multiline: true",
+      "    priority:",
+      "      type: ${5|choice,list|}",
+      "      values:",
+      "        - \"${6:High}\"",
+      "        - \"${7:Low}\""
+    ]
+  },
+  "espanso: form values in shell": {
+    "prefix": "esp-form-shell",
+    "description": "Use submitted form values ({{form1.field}}) inside a shell variable",
+    "body": [
+      "- trigger: \":${1:lookup}\"",
+      "  replace: \"{{output}}\"",
+      "  vars:",
+      "    - name: form1",
+      "      type: form",
+      "      params:",
+      "        layout: \"${2:Enter value: [[value]]}\"",
+      "    - name: output",
+      "      type: shell",
+      "      params:",
+      "        shell: powershell",
+      "        cmd: \"${3:Write-Output '{{form1.value}}'}\""
+    ]
+  },
+  "espanso: nested variables": {
+    "prefix": "esp-nested",
+    "description": "Variable depending on another variable (depends_on + {{var}} in params)",
+    "body": [
+      "- trigger: \":${1:nested}\"",
+      "  replace: \"{{greeting}}\"",
+      "  vars:",
+      "    - name: name",
+      "      type: echo",
+      "      params:",
+      "        echo: \"${2:World}\"",
+      "    - name: greeting",
+      "      type: echo",
+      "      params:",
+      "        echo: \"${3:Hello {{name}}}\"",
+      "      depends_on: [\"name\"]"
+    ]
+  },
+  "espanso: global variables block": {
+    "prefix": "esp-globalvars",
+    "description": "global_vars block shared by every match in this file",
+    "body": [
+      "global_vars:",
+      "  - name: ${1:myname}",
+      "    type: echo",
+      "    params:",
+      "      echo: \"${2:value}\""
+    ]
+  },
+  "espanso: imports block": {
+    "prefix": "esp-imports",
+    "description": "Import matches from other files (paths relative to this file)",
+    "body": [
+      "imports:",
+      "  - \"${1:../other/file.yml}\""
+    ]
+  },
+  "espanso: new match file": {
+    "prefix": "esp-file",
+    "description": "Scaffold for a whole espanso match file",
+    "body": [
+      "# espanso match file — see https://espanso.org/docs/matches/basics/",
+      "",
+      "matches:",
+      "  - trigger: \":${1:example}\"",
+      "    replace: \"${2:Hello from espanso!}\"",
+      ""
+    ]
+  }
+}

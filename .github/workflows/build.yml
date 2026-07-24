@@ -1,0 +1,43 @@
+# Copyright (c) the Espanso.VSCode.Ext project contributors.
+#
+# CI: build, lint, test and package the extension on windows-latest
+# (the user builds via CI, not locally — see AGENTS.md).
+
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check-types
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Package VSIX
+        run: npx @vscode/vsce package --out espanso-vscode-ext.vsix
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: espanso-vscode-ext-vsix
+          path: espanso-vscode-ext.vsix
