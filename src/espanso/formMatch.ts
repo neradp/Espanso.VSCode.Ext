@@ -15,11 +15,131 @@ export interface FormFieldInput {
   values?: string[];
 }
 
+export interface FormShellResultInput {
+  type: "shell";
+  name: string;
+  replacement: string;
+  command: string;
+  shell?: string;
+  trim?: boolean;
+}
+
+export interface FormScriptResultInput {
+  type: "script";
+  name: string;
+  replacement: string;
+  args: string[];
+  trim?: boolean;
+}
+
+export type FormResultInput = FormShellResultInput | FormScriptResultInput;
+
 export interface FormMatchInput {
   trigger: string;
   label?: string;
   layout: string;
   fields: FormFieldInput[];
+  result?: FormResultInput;
+}
+
+function buildFieldDefinition(field: FormFieldInput, name: string): Record<string, unknown> {
+  const definition: Record<string, unknown> = {};
+  if (field.type === "multiline") {
+    definition.multiline = true;
+  } else if (field.type === "choice" || field.type === "list") {
+    const values = field.values?.map((value) => value.trim()).filter(Boolean) ?? [];
+    if (values.length === 0) {
+      throw new Error(`Field '${name}' needs at least one value.`);
+    }
+    definition.type = field.type;
+    definition.values = values;
+  }
+  if (field.defaultValue) {
+    definition.default = field.defaultValue;
+  }
+  return definition;
+}
+
+function buildFormFields(input: FormMatchInput): Record<string, Record<string, unknown>> {
+  const formFields: Record<string, Record<string, unknown>> = {};
+  const layoutFieldNames = new Set(
+    [...input.layout.matchAll(/\[\[([^\][\n]+)\]\]/g)].map((match) => match[1].trim()).filter(Boolean)
+  );
+  const seenNames = new Set<string>();
+  for (const field of input.fields) {
+    const name = field.name.trim();
+    if (!name) {
+      throw new Error("Every configured field needs a name.");
+    }
+    if (seenNames.has(name)) {
+      throw new Error(`Field '${name}' is configured more than once.`);
+    }
+    if (!layoutFieldNames.has(name)) {
+      throw new Error(`Field '${name}' is not referenced in the form layout.`);
+    }
+    seenNames.add(name);
+
+    const definition = buildFieldDefinition(field, name);
+    // Plain text placeholders need no form_fields entry unless they define a default.
+    if (Object.keys(definition).length > 0) {
+      formFields[name] = definition;
+    }
+  }
+  return formFields;
+}
+
+function buildResultParams(result: FormResultInput): Record<string, unknown> {
+  const params: Record<string, unknown> = {};
+  if (result.type === "shell") {
+    const command = result.command.trim();
+    if (!command) {
+      throw new Error("A shell command is required when processing the form result.");
+    }
+    params.cmd = command;
+    const shell = result.shell?.trim();
+    if (shell) {
+      params.shell = shell;
+    }
+  } else {
+    const args = result.args.map((argument) => argument.trim()).filter(Boolean);
+    if (args.length === 0) {
+      throw new Error("At least one script argument (the executable) is required.");
+    }
+    params.args = args;
+  }
+  if (result.trim === false) {
+    params.trim = false;
+  }
+  return params;
+}
+
+function addProcessedResult(
+  match: Record<string, unknown>,
+  input: FormMatchInput,
+  formFields: Record<string, Record<string, unknown>>
+): void {
+  const result = input.result;
+  if (!result) {
+    return;
+  }
+  const resultName = result.name.trim();
+  if (!/^\w+$/.test(resultName) || resultName === "form1") {
+    throw new Error("The result variable needs a unique name containing only letters, numbers, and underscores.");
+  }
+
+  const formParams: Record<string, unknown> = { layout: input.layout };
+  if (Object.keys(formFields).length > 0) {
+    formParams.fields = formFields;
+  }
+
+  // Form-to-extension processing requires Espanso's verbose form syntax so the
+  // submitted values are available as form1.field_name to later local variables.
+  // https://espanso.org/docs/matches/forms/#using-forms-with-script-and-shell-extensions
+  match.replace = result.replacement.trim() || `{{${resultName}}}`;
+  match.vars = [
+    { name: "form1", type: "form", params: formParams },
+    { name: resultName, type: result.type, params: buildResultParams(result) },
+  ];
 }
 
 /** Builds one sequence item, indented for insertion under a top-level `matches:` key. */
@@ -37,42 +157,14 @@ export function createFormMatchYaml(input: FormMatchInput): string {
   if (label) {
     match.label = label;
   }
-  match.form = input.layout;
-
-  const formFields: Record<string, Record<string, unknown>> = {};
-  const seenNames = new Set<string>();
-  for (const field of input.fields) {
-    const name = field.name.trim();
-    if (!name) {
-      throw new Error("Every configured field needs a name.");
+  const formFields = buildFormFields(input);
+  if (input.result) {
+    addProcessedResult(match, input, formFields);
+  } else {
+    match.form = input.layout;
+    if (Object.keys(formFields).length > 0) {
+      match.form_fields = formFields;
     }
-    if (seenNames.has(name)) {
-      throw new Error(`Field '${name}' is configured more than once.`);
-    }
-    seenNames.add(name);
-
-    const definition: Record<string, unknown> = {};
-    if (field.type === "multiline") {
-      definition.multiline = true;
-    } else if (field.type === "choice" || field.type === "list") {
-      const values = field.values?.map((value) => value.trim()).filter(Boolean) ?? [];
-      if (values.length === 0) {
-        throw new Error(`Field '${name}' needs at least one value.`);
-      }
-      definition.type = field.type;
-      definition.values = values;
-    }
-    if (field.defaultValue) {
-      definition.default = field.defaultValue;
-    }
-
-    // Plain text placeholders need no form_fields entry unless they define a default.
-    if (Object.keys(definition).length > 0) {
-      formFields[name] = definition;
-    }
-  }
-  if (Object.keys(formFields).length > 0) {
-    match.form_fields = formFields;
   }
 
   const mapping = stringify(match, { lineWidth: 0 }).trimEnd().split("\n");

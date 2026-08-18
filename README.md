@@ -73,9 +73,17 @@ script / clipboard / choice / random / echo variable types.
 
 ### 5. Visual form editor
 
-The form editor creates plain text, multiline, choice, and list fields. It writes the
-official Espanso `form` / `form_fields` structure and inserts the new match without
-round-tripping the existing document, preserving comments and surrounding YAML formatting.
+The form editor creates plain text, multiline, choice, and list fields directly from the
+form layout. Select text and choose a field type to turn it into a `[[field_name]]`
+placeholder, or type a placeholder directly; the corresponding field settings stay in sync
+with the layout.
+
+Submitted values can optionally be processed by an Espanso `shell` or `script` variable.
+The editor generates the required verbose form syntax, exposes form values to the process,
+and inserts its output through a configurable final replacement. Without result processing,
+it writes the simpler official `form` / `form_fields` structure. In both modes, the match is
+inserted without round-tripping the existing document, preserving comments and surrounding
+YAML formatting.
 
 ## Relationship to espanso
 

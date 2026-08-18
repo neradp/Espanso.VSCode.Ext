@@ -45,11 +45,79 @@ test("replaces an empty flow sequence and can create a missing matches key", () 
 
 test("rejects duplicate fields and choices without values", () => {
   assert.throws(
-    () => createFormMatchYaml({ ...form, fields: [{ name: "x", type: "text" }, { name: "x", type: "text" }] }),
+    () => createFormMatchYaml({ ...form, fields: [{ name: "name", type: "text" }, { name: "name", type: "text" }] }),
     /more than once/
   );
   assert.throws(
-    () => createFormMatchYaml({ ...form, fields: [{ name: "x", type: "choice", values: [] }] }),
+    () => createFormMatchYaml({ ...form, fields: [{ name: "priority", type: "choice", values: [] }] }),
     /at least one value/
+  );
+  assert.throws(
+    () => createFormMatchYaml({ ...form, fields: [...form.fields, { name: "missing", type: "text" }] }),
+    /not referenced/
+  );
+});
+
+test("generates verbose form syntax for shell result processing", () => {
+  const parsed = parse(`matches:\n${createFormMatchYaml({
+    ...form,
+    result: {
+      type: "shell",
+      name: "output",
+      replacement: "Processed: {{output}}",
+      shell: "powershell",
+      command: "Write-Output $env:ESPANSO_FORM1_MESSAGE",
+    },
+  })}\n`);
+
+  assert.equal(parsed.matches[0].form, undefined);
+  assert.equal(parsed.matches[0].replace, "Processed: {{output}}");
+  assert.deepEqual(parsed.matches[0].vars, [
+    {
+      name: "form1",
+      type: "form",
+      params: {
+        layout: form.layout,
+        fields: {
+          message: { multiline: true, default: "Hello" },
+          priority: { type: "choice", values: ["Low", "High"] },
+        },
+      },
+    },
+    {
+      name: "output",
+      type: "shell",
+      params: {
+        cmd: "Write-Output $env:ESPANSO_FORM1_MESSAGE",
+        shell: "powershell",
+      },
+    },
+  ]);
+});
+
+test("generates and validates script result processing", () => {
+  const parsed = parse(`matches:\n${createFormMatchYaml({
+    ...form,
+    result: {
+      type: "script",
+      name: "rendered",
+      replacement: "",
+      args: ["python", "%CONFIG%/scripts/render.py"],
+      trim: false,
+    },
+  })}\n`);
+
+  assert.equal(parsed.matches[0].replace, "{{rendered}}");
+  assert.deepEqual(parsed.matches[0].vars[1], {
+    name: "rendered",
+    type: "script",
+    params: { args: ["python", "%CONFIG%/scripts/render.py"], trim: false },
+  });
+  assert.throws(
+    () => createFormMatchYaml({
+      ...form,
+      result: { type: "script", name: "output", replacement: "", args: [] },
+    }),
+    /executable/
   );
 });
