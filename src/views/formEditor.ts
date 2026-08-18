@@ -87,19 +87,21 @@ export class FormEditorPanel {
   <title>Espanso Form Editor</title>
   <style nonce="${nonce}">
     :root { color-scheme: light dark; }
-    body { margin: 0; padding: 24px; color: var(--vscode-foreground); background: var(--vscode-editor-background); font-family: var(--vscode-font-family); }
-    main { width: min(760px, 100%); margin: 0 auto; }
-    h1 { margin: 0; font-size: 22px; font-weight: 600; }
-    .target { margin: 6px 0 24px; color: var(--vscode-descriptionForeground); }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; }
-    input, select, textarea { box-sizing: border-box; width: 100%; border: 1px solid var(--vscode-input-border, transparent); padding: 8px 10px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); font: inherit; }
+    body { margin: 0; padding: 20px 24px 28px; color: var(--vscode-foreground); background: var(--vscode-editor-background); font-family: var(--vscode-font-family); }
+    main { width: min(840px, 100%); margin: 0 auto; }
+    header { padding-bottom: 18px; border-bottom: 1px solid var(--vscode-panel-border); }
+    h1 { margin: 0; font-size: 20px; font-weight: 600; }
+    .target { margin: 5px 0 0; color: var(--vscode-descriptionForeground); font-size: 12px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 16px; margin-top: 20px; }
+    label { display: grid; align-content: start; gap: 6px; font-size: 13px; font-weight: 600; }
+    input, select, textarea { box-sizing: border-box; width: 100%; border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); padding: 7px 9px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); font: inherit; }
+    input, select { min-height: 34px; }
     input:focus, select:focus, textarea:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
-    textarea { min-height: 150px; resize: vertical; font-family: var(--vscode-editor-font-family); }
-    section { margin-top: 24px; border-top: 1px solid var(--vscode-panel-border); padding-top: 18px; }
+    textarea { min-height: 128px; resize: vertical; font-family: var(--vscode-editor-font-family); }
+    section { margin-top: 20px; border-top: 1px solid var(--vscode-panel-border); padding-top: 16px; }
     .section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
     h2 { margin: 0; font-size: 16px; font-weight: 600; }
-    .field-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .field-tools { display: flex; flex-wrap: wrap; gap: 1px; margin-top: 10px; }
     .field { display: grid; grid-template-columns: minmax(130px, 1fr) 120px minmax(120px, 1fr) minmax(150px, 1.4fr) 32px; gap: 8px; margin-bottom: 8px; align-items: start; }
     .field code { min-height: 34px; box-sizing: border-box; padding: 8px 10px; overflow: hidden; color: var(--vscode-textPreformat-foreground); background: var(--vscode-textCodeBlock-background); text-overflow: ellipsis; white-space: nowrap; }
     .field textarea { min-height: 34px; height: 34px; }
@@ -111,21 +113,23 @@ export class FormEditorPanel {
     .is-hidden { display: none; }
     label.checkbox { display: flex; flex-direction: row; align-items: center; gap: 8px; font-weight: 400; }
     label.checkbox input { width: auto; }
-    button { min-height: 32px; border: 0; padding: 6px 12px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); font: inherit; cursor: pointer; }
+    button { min-height: 32px; border: 1px solid transparent; padding: 6px 12px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); font: inherit; cursor: pointer; }
     button:hover { background: var(--vscode-button-hoverBackground); }
-    button.secondary { color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); }
+    button.secondary { border-color: var(--vscode-button-border, var(--vscode-panel-border)); color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); }
     button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
     button.icon { width: 32px; padding: 0; font-size: 18px; }
-    .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+    .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--vscode-panel-border); }
     .error { min-height: 20px; margin-top: 14px; color: var(--vscode-errorForeground); }
     .hint { margin: 5px 0 0; color: var(--vscode-descriptionForeground); font-size: 12px; font-weight: 400; }
-    @media (max-width: 600px) { body { padding: 16px; } .grid, .field, .result-grid { grid-template-columns: 1fr; } .result-grid .wide { grid-column: auto; } .field button.icon { justify-self: end; } }
+    @media (max-width: 700px) { body { padding: 16px; } .grid, .field, .result-grid { grid-template-columns: 1fr; } .result-grid .wide { grid-column: auto; } .field button.icon { justify-self: end; } }
   </style>
 </head>
 <body>
   <main>
-    <h1>Create Espanso form match</h1>
-    <p class="target">Target: ${targetName}</p>
+    <header>
+      <h1>Create Espanso form match</h1>
+      <p class="target">Target: ${targetName}</p>
+    </header>
     <div class="grid">
       <label>Trigger <input id="trigger" required placeholder=":birthday"></label>
       <label>Match label (optional)
@@ -280,7 +284,7 @@ export class FormEditorPanel {
       const end = layout.selectionEnd;
       const selected = layout.value.slice(start, end);
       const trimmed = selected.trim();
-      const isExisting = trimmed.startsWith('[[') && trimmed.endsWith(']]') && !trimmed.includes('\n');
+      const isExisting = trimmed.startsWith('[[') && trimmed.endsWith(']]') && !trimmed.includes('\\n');
       let name = isExisting ? trimmed.slice(2, -2).trim() : trimmed
         .replace(/[ \t]+/g, '_')
         .replace(/[^A-Za-z0-9_]/g, '');
