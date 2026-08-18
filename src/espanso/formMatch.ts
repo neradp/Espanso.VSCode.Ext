@@ -142,8 +142,7 @@ function addProcessedResult(
   ];
 }
 
-/** Builds one sequence item, indented for insertion under a top-level `matches:` key. */
-export function createFormMatchYaml(input: FormMatchInput): string {
+function buildFormMatch(input: FormMatchInput): Record<string, unknown> {
   const trigger = input.trigger.trim();
   if (!trigger) {
     throw new Error("Trigger is required.");
@@ -166,11 +165,134 @@ export function createFormMatchYaml(input: FormMatchInput): string {
       match.form_fields = formFields;
     }
   }
+  return match;
+}
 
+function stringifyMatch(match: Record<string, unknown>): string {
   const mapping = stringify(match, { lineWidth: 0 }).trimEnd().split("\n");
   return mapping
     .map((line, index) => (index === 0 ? `  - ${line}` : `    ${line}`))
     .join("\n");
+}
+
+/** Builds one sequence item, indented for insertion under a top-level `matches:` key. */
+export function createFormMatchYaml(input: FormMatchInput): string {
+  return stringifyMatch(buildFormMatch(input));
+}
+
+/** Reads one editable form match from the top-level matches sequence. */
+export function parseFormMatchYaml(source: string, matchIndex: number): FormMatchInput {
+  const document = parseDocument(source);
+  if (document.errors.length > 0) {
+    throw new Error(`Cannot edit a form in invalid YAML: ${document.errors[0].message}`);
+  }
+  const root = document.toJS() as unknown;
+  if (!isRecord(root) || !Array.isArray(root.matches) || !isRecord(root.matches[matchIndex])) {
+    throw new Error("The selected match no longer exists.");
+  }
+  const match = root.matches[matchIndex];
+  if (typeof match.trigger !== "string") {
+    throw new Error("The visual editor supports form matches with one trigger.");
+  }
+
+  let layout: unknown = match.form;
+  let fieldDefinitions: unknown = match.form_fields;
+  let result: FormResultInput | undefined;
+  if (typeof layout !== "string" && Array.isArray(match.vars)) {
+    const formVariable = match.vars.find(
+      (value) => isRecord(value) && value.type === "form" && isRecord(value.params)
+    );
+    if (isRecord(formVariable) && isRecord(formVariable.params)) {
+      layout = formVariable.params.layout;
+      fieldDefinitions = formVariable.params.fields;
+      const resultVariable = match.vars.find(
+        (value) => isRecord(value) && (value.type === "shell" || value.type === "script")
+      );
+      if (isRecord(resultVariable) && isRecord(resultVariable.params) && typeof resultVariable.name === "string") {
+        const common = {
+          name: resultVariable.name,
+          replacement: typeof match.replace === "string" ? match.replace : "",
+          trim: resultVariable.params.trim !== false,
+        };
+        if (resultVariable.type === "shell" && typeof resultVariable.params.cmd === "string") {
+          result = {
+            ...common,
+            type: "shell",
+            command: resultVariable.params.cmd,
+            shell: typeof resultVariable.params.shell === "string" ? resultVariable.params.shell : undefined,
+          };
+        } else if (resultVariable.type === "script" && Array.isArray(resultVariable.params.args)) {
+          result = {
+            ...common,
+            type: "script",
+            args: resultVariable.params.args.filter((value): value is string => typeof value === "string"),
+          };
+        }
+      }
+    }
+  }
+  if (typeof layout !== "string") {
+    throw new Error("The selected match is not an editable form match.");
+  }
+
+  const definitions = isRecord(fieldDefinitions) ? fieldDefinitions : {};
+  const names = [...layout.matchAll(/\[\[([^\][\n]+)\]\]/g)]
+    .map((match) => match[1].trim())
+    .filter((name, index, all) => Boolean(name) && all.indexOf(name) === index);
+  const fields = names.map((name): FormFieldInput => {
+    const definition = isRecord(definitions[name]) ? definitions[name] : {};
+    const declaredType = definition.type;
+    const type: FormFieldType = declaredType === "choice" || declaredType === "list"
+      ? declaredType
+      : definition.multiline === true ? "multiline" : "text";
+    const field: FormFieldInput = {
+      name,
+      type,
+    };
+    if (typeof definition.default === "string") {
+      field.defaultValue = definition.default;
+    }
+    if (Array.isArray(definition.values)) {
+      field.values = definition.values.filter((value): value is string => typeof value === "string");
+    }
+    return field;
+  });
+
+  return {
+    trigger: match.trigger,
+    label: typeof match.label === "string" ? match.label : undefined,
+    layout,
+    fields,
+    result,
+  };
+}
+
+/** Replaces one match while preserving unrelated match properties and surrounding YAML. */
+export function replaceFormMatchYaml(source: string, matchIndex: number, input: FormMatchInput): string {
+  const document = parseDocument(source);
+  if (document.errors.length > 0) {
+    throw new Error(`Cannot edit a form in invalid YAML: ${document.errors[0].message}`);
+  }
+  const matches = document.get("matches", true);
+  if (!isSeq(matches) || !isMap(matches.items[matchIndex]) || !matches.items[matchIndex].range) {
+    throw new Error("The selected match no longer exists.");
+  }
+
+  const original = matches.items[matchIndex].toJSON() as unknown;
+  if (!isRecord(original)) {
+    throw new Error("The selected match is not a mapping.");
+  }
+  const preserved = Object.fromEntries(
+    Object.entries(original).filter(([key]) =>
+      !["trigger", "triggers", "regex", "label", "form", "form_fields", "replace", "vars"].includes(key)
+    )
+  );
+  const replacement = stringifyMatch({ ...buildFormMatch(input), ...preserved });
+  const range = matches.items[matchIndex].range;
+  const lineStart = source.lastIndexOf("\n", range[0] - 1) + 1;
+  const suffix = source.slice(range[1]);
+  const separator = suffix.length > 0 && !suffix.startsWith("\n") ? "\n" : "";
+  return `${source.slice(0, lineStart)}${replacement}${separator}${suffix}`;
 }
 
 /** Appends a form match to the top-level matches sequence while preserving existing source text. */
@@ -207,4 +329,8 @@ export function appendFormMatchYaml(source: string, input: FormMatchInput): stri
   const offset = matches.range[1];
   const needsNewline = offset > 0 && source[offset - 1] !== "\n";
   return `${source.slice(0, offset)}${needsNewline ? "\n" : ""}${item}\n${source.slice(offset)}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

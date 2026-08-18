@@ -26,6 +26,10 @@ export interface ParsedMatch {
   line: number;
   /** 0-based column of the match entry in the file. */
   column: number;
+  /** Index in the top-level matches sequence, including unsupported entries. */
+  matchIndex: number;
+  /** Whether this match can be opened safely in the visual form editor. */
+  editableForm: boolean;
 }
 
 export interface ParsedMatchFile {
@@ -69,7 +73,7 @@ export function parseMatchFile(text: string): ParsedMatchFile {
     return result;
   }
 
-  for (const entry of matchesNode.items) {
+  for (const [matchIndex, entry] of matchesNode.items.entries()) {
     if (!isMap(entry)) {
       continue;
     }
@@ -112,10 +116,29 @@ export function parseMatchFile(text: string): ParsedMatchFile {
       replacePreview: replace?.split(/\r?\n/, 1)[0],
       line: pos.line - 1,
       column: pos.col - 1,
+      matchIndex,
+      editableForm: singleTrigger !== undefined && isEditableForm(entry),
     });
   }
 
   return result;
+}
+
+function isEditableForm(entry: Parameters<typeof isMap>[0] & { get(key: unknown, keepScalar?: boolean): unknown }): boolean {
+  if (scalarString(entry.get("form", true)) !== undefined) {
+    return true;
+  }
+  const variables = entry.get("vars", true);
+  if (!isSeq(variables)) {
+    return false;
+  }
+  return variables.items.some((variable) => {
+    if (!isMap(variable) || scalarString(variable.get("type", true)) !== "form") {
+      return false;
+    }
+    const params = variable.get("params", true);
+    return isMap(params) && scalarString(params.get("layout", true)) !== undefined;
+  });
 }
 
 function scalarString(node: unknown): string | undefined {

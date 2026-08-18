@@ -74,12 +74,20 @@
       {
         "command": "espanso.createFormMatch",
         "title": "Create Form Match",
-        "category": "Espanso"
+        "category": "Espanso",
+        "icon": "$(add)"
+      },
+      {
+        "command": "espanso.editFormMatch",
+        "title": "Edit Form Match",
+        "category": "Espanso",
+        "icon": "$(edit)"
       },
       {
         "command": "espanso.newMatchFile",
         "title": "New Match File",
-        "category": "Espanso"
+        "category": "Espanso",
+        "icon": "$(new-file)"
       },
       {
         "command": "espanso.showMenu",
@@ -99,19 +107,47 @@
     "menus": {
       "view/title": [
         {
-          "command": "espanso.searchMatches",
+          "command": "espanso.createFormMatch",
           "when": "view == espansoMatches",
           "group": "navigation@1"
         },
         {
-          "command": "espanso.refreshMatches",
+          "command": "espanso.newMatchFile",
           "when": "view == espansoMatches",
           "group": "navigation@2"
         },
         {
-          "command": "espanso.showLog",
+          "command": "espanso.searchMatches",
           "when": "view == espansoMatches",
           "group": "navigation@3"
+        },
+        {
+          "command": "espanso.refreshMatches",
+          "when": "view == espansoMatches",
+          "group": "navigation@4"
+        },
+        {
+          "command": "espanso.showLog",
+          "when": "view == espansoMatches",
+          "group": "navigation@5"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "espanso.createFormMatch",
+          "when": "view == espansoMatches && viewItem == espansoMatchFile",
+          "group": "inline@1"
+        },
+        {
+          "command": "espanso.editFormMatch",
+          "when": "view == espansoMatches && viewItem == espansoFormMatch",
+          "group": "inline@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "espanso.editFormMatch",
+          "when": "false"
         }
       ]
     },

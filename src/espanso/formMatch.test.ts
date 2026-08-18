@@ -3,7 +3,12 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { parse } from "yaml";
-import { appendFormMatchYaml, createFormMatchYaml } from "./formMatch";
+import {
+  appendFormMatchYaml,
+  createFormMatchYaml,
+  parseFormMatchYaml,
+  replaceFormMatchYaml,
+} from "./formMatch";
 
 const form = {
   trigger: ":contact",
@@ -120,4 +125,68 @@ test("generates and validates script result processing", () => {
     }),
     /executable/
   );
+});
+
+test("parses and replaces an existing form without changing adjacent matches", () => {
+  const source = [
+    "matches:",
+    "  - trigger: :before",
+    "    replace: Before",
+    "  - trigger: :contact",
+    "    label: Existing form",
+    "    form: 'Hello [[name]]: [[message]]'",
+    "    form_fields:",
+    "      message:",
+    "        multiline: true",
+    "    word: true",
+    "  - trigger: :after",
+    "    replace: After",
+    "",
+  ].join("\n");
+
+  const existing = parseFormMatchYaml(source, 1);
+  assert.deepEqual(existing, {
+    trigger: ":contact",
+    label: "Existing form",
+    layout: "Hello [[name]]: [[message]]",
+    fields: [
+      { name: "name", type: "text" },
+      { name: "message", type: "multiline" },
+    ],
+    result: undefined,
+  });
+
+  const updated = replaceFormMatchYaml(source, 1, { ...existing, trigger: ":edited" });
+  const parsed = parse(updated);
+  assert.equal(parsed.matches.length, 3);
+  assert.equal(parsed.matches[0].trigger, ":before");
+  assert.equal(parsed.matches[1].trigger, ":edited");
+  assert.equal(parsed.matches[1].word, true);
+  assert.equal(parsed.matches[2].trigger, ":after");
+});
+
+test("parses an existing processed form", () => {
+  const source = `matches:\n${createFormMatchYaml({
+    ...form,
+    result: {
+      type: "shell",
+      name: "output",
+      replacement: "Result: {{output}}",
+      command: "echo test",
+      shell: "cmd",
+      trim: false,
+    },
+  })}\n`;
+
+  assert.deepEqual(parseFormMatchYaml(source, 0), {
+    ...form,
+    result: {
+      type: "shell",
+      name: "output",
+      replacement: "Result: {{output}}",
+      command: "echo test",
+      shell: "cmd",
+      trim: false,
+    },
+  });
 });

@@ -24,12 +24,12 @@ export interface MatchEntry {
   readonly match: ParsedMatch;
 }
 
-type TreeNode = FileGroup | MatchNode;
+export type TreeNode = FileGroup | MatchNode;
 
-interface MatchNode {
-  kind: "match";
-  match: ParsedMatch;
-  fileUri: vscode.Uri;
+export interface MatchNode {
+  readonly kind: "match";
+  readonly match: ParsedMatch;
+  readonly fileUri: vscode.Uri;
 }
 
 function isFileGroup(node: TreeNode): node is FileGroup {
@@ -66,6 +66,7 @@ export class MatchesTreeProvider implements vscode.TreeDataProvider<TreeNode> {
       const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Expanded);
       item.iconPath = vscode.ThemeIcon.File;
       item.resourceUri = element.uri;
+      item.contextValue = "espansoMatchFile";
       item.description = `${element.matches.length}`;
       if (element.errors.length > 0) {
         item.tooltip = element.errors.join("\n");
@@ -77,6 +78,7 @@ export class MatchesTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     const m = element.match;
     const item = new vscode.TreeItem(m.triggers.join(", "), vscode.TreeItemCollapsibleState.None);
     item.iconPath = new vscode.ThemeIcon("symbol-snippet");
+    item.contextValue = m.editableForm ? "espansoFormMatch" : "espansoMatch";
     item.description = m.label;
     item.tooltip = m.replacePreview ?? m.label;
     item.command = {

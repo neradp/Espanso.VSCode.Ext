@@ -5,11 +5,17 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import {
   appendFormMatchYaml,
+  replaceFormMatchYaml,
   type FormFieldInput,
   type FormFieldType,
   type FormMatchInput,
   type FormResultInput,
 } from "../espanso/formMatch";
+
+export interface FormEditorOptions {
+  readonly input: FormMatchInput;
+  readonly matchIndex: number;
+}
 
 interface SaveFormMessage {
   command: "save";
@@ -22,15 +28,16 @@ interface SaveFormMessage {
 
 /** A focused visual editor that appends one form match to an existing YAML file. */
 export class FormEditorPanel {
-  static open(target: vscode.Uri, onSaved: () => void): FormEditorPanel {
-    return new FormEditorPanel(target, onSaved);
+  static open(target: vscode.Uri, onSaved: () => void, editing?: FormEditorOptions): FormEditorPanel {
+    return new FormEditorPanel(target, onSaved, editing);
   }
 
   private readonly panel: vscode.WebviewPanel;
 
   private constructor(
     private readonly target: vscode.Uri,
-    private readonly onSaved: () => void
+    private readonly onSaved: () => void,
+    private readonly editing?: FormEditorOptions
   ) {
     this.panel = vscode.window.createWebviewPanel(
       "espansoFormEditor",
@@ -54,7 +61,9 @@ export class FormEditorPanel {
     try {
       const input = parseFormInput(message);
       const document = await vscode.workspace.openTextDocument(this.target);
-      const updated = appendFormMatchYaml(document.getText(), input);
+      const updated = this.editing
+        ? replaceFormMatchYaml(document.getText(), this.editing.matchIndex, input)
+        : appendFormMatchYaml(document.getText(), input);
       const edit = new vscode.WorkspaceEdit();
       edit.replace(
         this.target,
@@ -68,7 +77,8 @@ export class FormEditorPanel {
       await vscode.window.showTextDocument(document, { preview: false });
       this.onSaved();
       this.panel.dispose();
-      void vscode.window.showInformationMessage(`Form added to ${path.basename(this.target.fsPath)}.`);
+      const action = this.editing ? "updated" : "added";
+      void vscode.window.showInformationMessage(`Form ${action} in ${path.basename(this.target.fsPath)}.`);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       await this.panel.webview.postMessage({ command: "error", message: detail });
@@ -78,6 +88,9 @@ export class FormEditorPanel {
   private getHtml(): string {
     const nonce = randomBytes(16).toString("base64");
     const targetName = escapeHtml(path.basename(this.target.fsPath));
+    const initial = serializeForScript(this.editing?.input ?? null);
+    const heading = this.editing ? "Edit Espanso form match" : "Create Espanso form match";
+    const saveLabel = this.editing ? "Save form" : "Add form";
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -127,7 +140,7 @@ export class FormEditorPanel {
 <body>
   <main>
     <header>
-      <h1>Create Espanso form match</h1>
+      <h1>${heading}</h1>
       <p class="target">Target: ${targetName}</p>
     </header>
     <div class="grid">
@@ -189,7 +202,7 @@ export class FormEditorPanel {
       </div>
     </section>
     <div id="error" class="error" role="alert"></div>
-    <div class="actions"><button id="cancel" class="secondary" type="button">Cancel</button><button id="save" type="button">Add form</button></div>
+    <div class="actions"><button id="cancel" class="secondary" type="button">Cancel</button><button id="save" type="button">${saveLabel}</button></div>
   </main>
   <template id="field-template">
     <div class="field">
@@ -208,6 +221,7 @@ export class FormEditorPanel {
     const layout = document.getElementById('layout');
     const resultType = document.getElementById('result-type');
     const fieldConfigs = new Map();
+    const initial = ${initial};
 
     function rememberFields() {
       for (const row of fields.querySelectorAll('.field')) {
@@ -312,6 +326,31 @@ export class FormEditorPanel {
       document.getElementById('script-args').classList.toggle('is-hidden', mode !== 'script');
     }
 
+    if (initial) {
+      document.getElementById('trigger').value = initial.trigger;
+      document.getElementById('label').value = initial.label || '';
+      layout.value = initial.layout;
+      for (const field of initial.fields) {
+        fieldConfigs.set(field.name, {
+          type: field.type,
+          defaultValue: field.defaultValue || '',
+          values: (field.values || []).join('\\n'),
+        });
+      }
+      if (initial.result) {
+        resultType.value = initial.result.type;
+        document.getElementById('result-name').value = initial.result.name;
+        document.getElementById('replacement').value = initial.result.replacement;
+        document.getElementById('trim').checked = initial.result.trim !== false;
+        if (initial.result.type === 'shell') {
+          document.getElementById('command').value = initial.result.command;
+          document.getElementById('shell').value = initial.result.shell || '';
+        } else {
+          document.getElementById('args').value = initial.result.args.join('\\n');
+        }
+      }
+    }
+
     layout.addEventListener('input', syncFields);
     for (const button of document.querySelectorAll('.field-tool')) {
       button.addEventListener('mousedown', (event) => event.preventDefault());
@@ -362,6 +401,7 @@ export class FormEditorPanel {
     window.addEventListener('message', (event) => {
       if (event.data?.command === 'error') error.textContent = event.data.message;
     });
+    syncFields();
     updateResultControls();
   </script>
 </body>
@@ -465,4 +505,10 @@ function escapeHtml(value: string): string {
     };
     return entities[character];
   });
+}
+
+function serializeForScript(value: unknown): string {
+  return JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, (character) =>
+    `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`
+  );
 }

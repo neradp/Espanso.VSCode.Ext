@@ -63,6 +63,7 @@ replacement previews, and file names. Selecting an item opens its exact YAML def
 | `Espanso: Search Matches` | Searches every parsed match and jumps to its definition |
 | `Espanso: Show Log` | Runs `espanso log` and displays the result in the Output panel |
 | `Espanso: Create Form Match` | Opens a visual form builder and appends the generated match to a chosen YAML file |
+| `Espanso: Edit Form Match` | Opens an existing form match from the matches tree in the visual editor |
 | `Espanso: New Match File` | Creates a new `.yml` from a template |
 
 ### 4. Snippets
@@ -73,8 +74,9 @@ script / clipboard / choice / random / echo variable types.
 
 ### 5. Visual form editor
 
-The form editor creates plain text, multiline, choice, and list fields directly from the
-form layout. Select text and choose a field type to turn it into a `[[field_name]]`
+The form editor creates and edits plain text, multiline, choice, and list fields directly
+from the form layout. Use the add and edit actions in the **Espanso Matches** tree, select
+text and choose a field type to turn it into a `[[field_name]]`
 placeholder, or type a placeholder directly; the corresponding field settings stay in sync
 with the layout.
 

@@ -7,9 +7,14 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { getEspansoPaths, runEspanso, setExecutableOverride } from "./espanso/cli";
+import { parseFormMatchYaml } from "./espanso/formMatch";
 import { FormEditorPanel } from "./views/formEditor";
 import { EspansoLogOutput } from "./views/logOutput";
-import { MatchesTreeProvider } from "./views/matchesTree";
+import {
+  MatchesTreeProvider,
+  type FileGroup,
+  type MatchNode,
+} from "./views/matchesTree";
 import { MatchesWatcher } from "./views/matchesWatcher";
 import { EspansoStatusBar } from "./views/statusBar";
 
@@ -51,10 +56,26 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("espanso.refreshMatches", () => tree.refresh()),
     vscode.commands.registerCommand("espanso.showLog", () => logOutput.show()),
     vscode.commands.registerCommand("espanso.searchMatches", () => searchMatches(tree)),
-    vscode.commands.registerCommand("espanso.createFormMatch", async () => {
-      const target = await chooseMatchFile(tree);
+    vscode.commands.registerCommand("espanso.createFormMatch", async (file?: FileGroup) => {
+      const target = file?.uri ?? await chooseMatchFile(tree);
       if (target) {
         FormEditorPanel.open(target, () => tree.refresh());
+      }
+    }),
+    vscode.commands.registerCommand("espanso.editFormMatch", async (node: MatchNode | undefined) => {
+      if (!node?.match.editableForm) {
+        return;
+      }
+      try {
+        const document = await vscode.workspace.openTextDocument(node.fileUri);
+        const input = parseFormMatchYaml(document.getText(), node.match.matchIndex);
+        FormEditorPanel.open(node.fileUri, () => tree.refresh(), {
+          input,
+          matchIndex: node.match.matchIndex,
+        });
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        void vscode.window.showErrorMessage(`Cannot edit this Espanso form: ${detail}`);
       }
     }),
 

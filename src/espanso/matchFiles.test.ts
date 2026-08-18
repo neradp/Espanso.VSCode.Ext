@@ -13,6 +13,8 @@ test("parses a basic match with trigger and replace", () => {
   assert.deepEqual(result.matches[0].triggers, [":hello"]);
   assert.equal(result.matches[0].replacePreview, "Hello World");
   assert.equal(result.matches[0].line, 1);
+  assert.equal(result.matches[0].matchIndex, 0);
+  assert.equal(result.matches[0].editableForm, false);
 });
 
 test("parses multi-trigger, regex and label", () => {
@@ -58,4 +60,29 @@ test("multiline replace preview shows only the first line", () => {
     ["matches:", '  - trigger: ":ml"', "    replace: |", "      first line", "      second line"].join("\n")
   );
   assert.equal(result.matches[0].replacePreview, "first line");
+});
+
+test("identifies simple and processed forms that the visual editor can edit", () => {
+  const result = parseMatchFile([
+    "matches:",
+    "  - replace: skipped",
+    "  - trigger: :simple",
+    "    form: 'Hello [[name]]'",
+    "  - trigger: :processed",
+    "    replace: '{{output}}'",
+    "    vars:",
+    "      - name: form1",
+    "        type: form",
+    "        params:",
+    "          layout: 'Hello [[name]]'",
+    "      - name: output",
+    "        type: shell",
+    "        params:",
+    "          cmd: echo test",
+  ].join("\n"));
+
+  assert.equal(result.matches[0].matchIndex, 1);
+  assert.equal(result.matches[0].editableForm, true);
+  assert.equal(result.matches[1].matchIndex, 2);
+  assert.equal(result.matches[1].editableForm, true);
 });
