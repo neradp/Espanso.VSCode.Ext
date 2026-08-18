@@ -60,6 +60,23 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "espanso.searchMatches",
+        "title": "Search Matches",
+        "category": "Espanso",
+        "icon": "$(search)"
+      },
+      {
+        "command": "espanso.showLog",
+        "title": "Show Log",
+        "category": "Espanso",
+        "icon": "$(output)"
+      },
+      {
+        "command": "espanso.createFormMatch",
+        "title": "Create Form Match",
+        "category": "Espanso"
+      },
+      {
         "command": "espanso.newMatchFile",
         "title": "New Match File",
         "category": "Espanso"
@@ -82,9 +99,19 @@
     "menus": {
       "view/title": [
         {
+          "command": "espanso.searchMatches",
+          "when": "view == espansoMatches",
+          "group": "navigation@1"
+        },
+        {
           "command": "espanso.refreshMatches",
           "when": "view == espansoMatches",
-          "group": "navigation"
+          "group": "navigation@2"
+        },
+        {
+          "command": "espanso.showLog",
+          "when": "view == espansoMatches",
+          "group": "navigation@3"
         }
       ]
     },

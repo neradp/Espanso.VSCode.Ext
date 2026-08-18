@@ -10,12 +10,18 @@ import * as vscode from "vscode";
 import { getEspansoPaths } from "../espanso/cli";
 import { parseMatchFile, type ParsedMatch } from "../espanso/matchFiles";
 
-interface FileGroup {
-  uri: vscode.Uri;
+export interface FileGroup {
+  readonly uri: vscode.Uri;
   /** Path shown as the group label, relative to the match/packages root. */
-  label: string;
-  matches: ParsedMatch[];
-  errors: string[];
+  readonly label: string;
+  readonly matches: ParsedMatch[];
+  readonly errors: string[];
+}
+
+export interface MatchEntry {
+  readonly uri: vscode.Uri;
+  readonly fileLabel: string;
+  readonly match: ParsedMatch;
 }
 
 type TreeNode = FileGroup | MatchNode;
@@ -36,11 +42,23 @@ export class MatchesTreeProvider implements vscode.TreeDataProvider<TreeNode> {
 
   private groups: FileGroup[] = [];
   private loadError: string | undefined;
+  private loaded = false;
+  private loading: Promise<void> | undefined;
   /** Normalized fsPaths already added, to deduplicate imports and break cycles. */
   private visited = new Set<string>();
 
   refresh(): void {
+    this.loaded = false;
+    this.loading = undefined;
     this._onDidChangeTreeData.fire();
+  }
+
+  /** Returns the same parsed matches used by the tree, without a second filesystem scan. */
+  async getMatchEntries(): Promise<MatchEntry[]> {
+    await this.ensureLoaded();
+    return this.groups.flatMap((group) =>
+      group.matches.map((match) => ({ uri: group.uri, fileLabel: group.label, match }))
+    );
   }
 
   getTreeItem(element: TreeNode): vscode.TreeItem {
@@ -76,13 +94,21 @@ export class MatchesTreeProvider implements vscode.TreeDataProvider<TreeNode> {
 
   async getChildren(element?: TreeNode): Promise<TreeNode[]> {
     if (!element) {
-      await this.load();
+      await this.ensureLoaded();
       return this.groups;
     }
     if (isFileGroup(element)) {
       return element.matches.map((m) => ({ kind: "match", match: m, fileUri: element.uri }));
     }
     return [];
+  }
+
+  private async ensureLoaded(): Promise<void> {
+    if (this.loaded) {
+      return;
+    }
+    this.loading ??= this.load();
+    await this.loading;
   }
 
   private async load(): Promise<void> {
@@ -98,6 +124,9 @@ export class MatchesTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     } catch (err) {
       this.loadError = err instanceof Error ? err.message : String(err);
       void vscode.window.showWarningMessage(`Espanso: failed to load matches — ${this.loadError}`);
+    } finally {
+      this.loaded = true;
+      this.loading = undefined;
     }
   }
 

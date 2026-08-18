@@ -111,7 +111,10 @@ export class EspansoStatusBar implements vscode.Disposable {
 
     if (this.detected) {
       items.push(
+        { label: "$(search) Search matches", command: "espanso.searchMatches" },
         { label: "$(refresh) Refresh matches", command: "espanso.refreshMatches" },
+        { label: "$(output) Show Espanso log", command: "espanso.showLog" },
+        { label: "$(edit) Create form match", command: "espanso.createFormMatch" },
         { label: "$(debug-restart) Restart espanso", command: "espanso.restart" },
         { label: "$(folder-opened) Open match folder", command: "espanso.openMatchFolder" },
         { label: "$(folder-opened) Open config folder", command: "espanso.openConfigFolder" },
