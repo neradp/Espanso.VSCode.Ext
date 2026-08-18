@@ -2,7 +2,7 @@
   "name": "espanso-vscode-ext",
   "displayName": "Espanso",
   "description": "Editing support for espanso configuration and match files: validation, autocompletion, a matches tree view, commands and snippets.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "neradp",
   "license": "MIT",
   "icon": "images/icon.png",
